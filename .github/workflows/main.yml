@@ -28,28 +28,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app
+      - name: Build web app (Static SPA)
         env:
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
         run: npx vite build
-
-      # 🚨 NEW SMART FIX STEP 🚨
-      # This automatically finds index.html wherever Lovable hid it 
-      # and moves the folder to 'dist' for Capacitor!
-      - name: Auto-fix dist folder for Capacitor
-        run: |
-          INDEX_PATH=$(find . -path ./node_modules -prune -o -name "index.html" -print | head -n 1)
-          if [ -z "$INDEX_PATH" ]; then
-            echo "Build failed: index.html not found anywhere!"
-            exit 1
-          fi
-          DIST_DIR=$(dirname "$INDEX_PATH")
-          echo "Found index.html in $DIST_DIR"
-          if [ "$DIST_DIR" != "./dist" ]; then
-            echo "Moving $DIST_DIR to ./dist so Capacitor can find it..."
-            rm -rf ./dist
-            mv "$DIST_DIR" ./dist
-          fi
 
       - name: Sync Capacitor
         run: npx cap sync android
