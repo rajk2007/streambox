@@ -33,6 +33,9 @@ jobs:
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
         run: npm run build
 
+      - name: Debug - List files in dist folder
+        run: ls -R dist
+
       - name: Sync Capacitor
         run: npx cap sync android
 
