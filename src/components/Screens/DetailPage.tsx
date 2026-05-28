@@ -1,18 +1,62 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Play, Plus, Check, Download } from "lucide-react";
-import { useState } from "react";
-import { getById, mockData, type MediaItem } from "@/data/mockData";
+import { useState, useEffect } from "react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { Row } from "@/components/Row";
 import { PosterCard } from "@/components/Cards/PosterCard";
 import { MediaImage } from "@/components/Cards/MediaImage";
+import { StorageService } from "@/services/StorageService";
+import { MetadataService, TMDBResult } from "@/services/MetadataService";
 
 export function DetailPage({ id }: { id: string }) {
-  const item = getById(id);
+  const [item, setItem] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { has, toggle } = useWatchlist();
   const [tab, setTab] = useState<"overview" | "episodes">("overview");
   const [season, setSeason] = useState(1);
+
+  useEffect(() => {
+    // In a real app, we'd fetch by ID from TMDB. 
+    // For now, we'll try to find it in trending/popular or just use a placeholder if not found.
+    const fetchItem = async () => {
+      setLoading(true);
+      const trending = await MetadataService.getTrending();
+      const found = trending.find(t => String(t.id) === id);
+      
+      if (found) {
+        const mapped = {
+          id: String(found.id),
+          title: found.title || found.name || "",
+          poster: MetadataService.getPosterUrl(found.poster_path),
+          backdrop: MetadataService.getBackdropUrl(found.backdrop_path),
+          rating: Number(found.vote_average.toFixed(1)),
+          year: (found.release_date || found.first_air_date || "").split("-")[0],
+          description: found.overview,
+          genre: ["Action", "Adventure"], // Placeholder
+          type: found.media_type || (found.title ? "movie" : "series"),
+          duration: "2h 15m",
+          seasons: 1
+        };
+        setItem(mapped);
+        
+        // Add to history
+        StorageService.addToHistory({
+          id: mapped.id,
+          title: mapped.title,
+          poster: mapped.poster,
+          progress: 0,
+          timestamp: Date.now(),
+          type: mapped.type as any
+        });
+      }
+      setLoading(false);
+    };
+
+    fetchItem();
+  }, [id]);
+
+  if (loading) return <div className="p-10 text-center text-white">Loading...</div>;
 
   if (!item) {
     return (
@@ -24,14 +68,12 @@ export function DetailPage({ id }: { id: string }) {
   }
 
   const inList = has(item.id);
-  const moreLikeThis = mockData.filter((m) => m.id !== item.id && m.genre.some((g) => item.genre.includes(g))).slice(0, 10);
   const isSeries = item.type !== "movie";
-  const epCount = item.episodes ?? 10;
-  const eps = Array.from({ length: Math.min(epCount, 10) }, (_, i) => ({
+  const eps = Array.from({ length: 10 }, (_, i) => ({
     n: i + 1,
     title: `Episode ${i + 1}`,
     dur: "24m",
-    progress: i < 2 ? 1 : i === 2 ? 0.3 : 0,
+    progress: 0,
   }));
 
   return (
@@ -56,7 +98,7 @@ export function DetailPage({ id }: { id: string }) {
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-4">
-          {item.genre.map((g) => <span key={g} className="text-[11px] px-2 py-0.5 rounded-full bg-card text-white border border-border">{g}</span>)}
+          {item.genre.map((g: string) => <span key={g} className="text-[11px] px-2 py-0.5 rounded-full bg-card text-white border border-border">{g}</span>)}
         </div>
 
         <p className="text-sm text-white/85 mt-3 leading-relaxed">{item.description}</p>
@@ -65,7 +107,11 @@ export function DetailPage({ id }: { id: string }) {
           <Link to="/player/$id" params={{ id: item.id }} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-white" style={{ background: "#DC586D" }}>
             <Play size={16} fill="#fff" /> Play Now
           </Link>
-          <button onClick={() => toggle(item.id)} className="px-3 py-3 rounded-lg bg-card border border-border" aria-label="Watchlist">
+          <button onClick={() => {
+            toggle(item.id);
+            if (!inList) StorageService.addToWatchlist(item.id);
+            else StorageService.removeFromWatchlist(item.id);
+          }} className="px-3 py-3 rounded-lg bg-card border border-border" aria-label="Watchlist">
             {inList ? <Check size={18} color="#FB9590" /> : <Plus size={18} color="#fff" />}
           </button>
           <button className="px-3 py-3 rounded-lg bg-card border border-border" aria-label="Download"><Download size={18} color="#fff" /></button>
@@ -95,18 +141,6 @@ export function DetailPage({ id }: { id: string }) {
                 ))}
               </div>
             </section>
-
-            <section className="mt-6">
-              <h3 className="text-sm font-semibold text-white mb-3">Source</h3>
-              <div className="flex gap-2">
-                {["Auto", "Manual", "Smart"].map((s, i) => (
-                  <button key={s} className="flex-1 py-2 rounded-md text-xs font-medium border"
-                    style={{ background: i === 0 ? "rgba(220,88,109,0.15)" : "transparent", borderColor: i === 0 ? "#DC586D" : "#2A2A2A", color: i === 0 ? "#FB9590" : "#888" }}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </section>
           </>
         )}
 
@@ -125,11 +159,6 @@ export function DetailPage({ id }: { id: string }) {
                 <li key={e.n} className="flex gap-3 p-2 rounded-lg bg-surface border border-border">
                   <div className="relative w-28 shrink-0">
                     <MediaImage src={`https://picsum.photos/seed/${item.id}e${e.n}/300/170`} alt={e.title} className="aspect-video rounded-md" />
-                    {e.progress > 0 && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60">
-                        <div className="h-full" style={{ width: `${e.progress * 100}%`, background: "#DC586D" }} />
-                      </div>
-                    )}
                   </div>
                   <div className="flex-1 py-1">
                     <p className="text-sm text-white font-medium">{e.n}. {e.title}</p>
@@ -141,12 +170,7 @@ export function DetailPage({ id }: { id: string }) {
           </section>
         )}
       </div>
-
-      {(!isSeries || tab === "overview") && moreLikeThis.length > 0 && (
-        <Row title="More Like This">
-          {moreLikeThis.map((m) => <PosterCard key={m.id} item={m as MediaItem} />)}
-        </Row>
-      )}
+      <div className="h-10" />
     </div>
   );
 }

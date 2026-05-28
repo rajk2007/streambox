@@ -1,45 +1,66 @@
+import { useEffect, useState } from "react";
 import { Hero } from "@/components/Hero";
 import { Row } from "@/components/Row";
 import { PosterCard } from "@/components/Cards/PosterCard";
 import { WideCard } from "@/components/Cards/WideCard";
 import { Link } from "@tanstack/react-router";
-import {
-  mockData, continueWatching, trending, newReleases, topRated,
-  popularMovies, popularSeries, animePicks, regionalHits, genres,
-} from "@/data/mockData";
+import { MetadataService, TMDBResult } from "@/services/MetadataService";
+import { RepoSetupService } from "@/services/RepoSetupService";
+import { StorageService } from "@/services/StorageService";
+
+const genres = ["Action", "Comedy", "Drama", "Sci-Fi", "Anime", "Horror", "Thriller"];
 
 export function HomeScreen() {
-  const featured = mockData.find((m) => m.id === "dhurandhar") ?? mockData[0];
+  const [trending, setTrending] = useState<TMDBResult[]>([]);
+  const [popularMovies, setPopularMovies] = useState<TMDBResult[]>([]);
+  const [popularSeries, setPopularSeries] = useState<TMDBResult[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Silent initialization
+    RepoSetupService.initializeApp();
+
+    // Fetch TMDB data
+    MetadataService.getTrending().then(setTrending);
+    MetadataService.getPopularMovies().then(setPopularMovies);
+    MetadataService.getPopularSeries().then(setPopularSeries);
+    setHistory(StorageService.getWatchHistory());
+  }, []);
+
+  const featured = trending[0];
+
+  const mapToMediaItem = (m: TMDBResult) => ({
+    id: String(m.id),
+    title: m.title || m.name || "",
+    poster: MetadataService.getPosterUrl(m.poster_path),
+    backdrop: MetadataService.getBackdropUrl(m.backdrop_path),
+    rating: Number(m.vote_average.toFixed(1)),
+    year: (m.release_date || m.first_air_date || "").split("-")[0],
+    description: m.overview,
+    genre: [], // Genres need separate mapping if needed
+    type: m.media_type || (m.title ? "movie" : "series")
+  });
+
   return (
     <div className="animate-fade-in">
-      <Hero item={featured} />
+      {featured && <Hero item={mapToMediaItem(featured) as any} />}
 
-      <Row title="Continue Watching">
-        {continueWatching.map((m) => <WideCard key={m.id} item={m} progress={m.progress} />)}
-      </Row>
+      {history.length > 0 && (
+        <Row title="Continue Watching">
+          {history.map((m) => <WideCard key={m.id} item={m as any} progress={m.progress} />)}
+        </Row>
+      )}
 
       <Row title="Trending Now">
-        {trending.map((m, i) => <PosterCard key={m.id} item={m} rank={i + 1} />)}
+        {trending.map((m, i) => <PosterCard key={m.id} item={mapToMediaItem(m) as any} rank={i + 1} />)}
       </Row>
 
       <Row title="Popular Movies">
-        {popularMovies.map((m) => <PosterCard key={m.id} item={m} />)}
+        {popularMovies.map((m) => <PosterCard key={m.id} item={mapToMediaItem(m) as any} />)}
       </Row>
 
       <Row title="Popular Series">
-        {popularSeries.map((m) => <WideCard key={m.id} item={m} />)}
-      </Row>
-
-      <Row title="Anime Picks">
-        {animePicks.map((m) => <WideCard key={m.id} item={m} />)}
-      </Row>
-
-      <Row title="New Releases">
-        {newReleases.map((m) => <PosterCard key={m.id} item={m} />)}
-      </Row>
-
-      <Row title="Top Rated">
-        {topRated.map((m) => <PosterCard key={m.id} item={m} />)}
+        {popularSeries.map((m) => <WideCard key={m.id} item={mapToMediaItem(m) as any} />)}
       </Row>
 
       <section className="mt-7">
@@ -50,10 +71,6 @@ export function HomeScreen() {
           ))}
         </div>
       </section>
-
-      <Row title="Regional Hits">
-        {regionalHits.map((m) => <PosterCard key={m.id} item={m} />)}
-      </Row>
 
       <div className="h-10" />
     </div>
