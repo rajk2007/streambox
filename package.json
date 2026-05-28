@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:spa": "vite build --config vite.spa.config.ts",
+    "build:android": "npm run build:spa && npx cap sync android",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

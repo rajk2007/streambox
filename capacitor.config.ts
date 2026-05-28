@@ -10,7 +10,24 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: true,
-  }
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+    },
+  },
+  plugins: {
+    StatusBar: {
+      style: 'Dark',
+      backgroundColor: '#0A0A0A',
+    },
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#0A0A0A',
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;

@@ -1,0 +1,71 @@
+name: StreamBox Android Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Install Node dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build Static SPA
+        run: npm run build:spa
+
+      - name: Verify dist/index.html exists
+        run: |
+          if [ ! -f dist/index.html ]; then
+            echo "ERROR: dist/index.html not found. SPA build failed."
+            exit 1
+          fi
+          echo "SUCCESS: dist/index.html found."
+          ls -la dist/
+
+      - name: Install Capacitor CLI globally
+        run: npm install -g @capacitor/cli@6
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK was created
+        run: |
+          find android/app/build/outputs/apk -name "*.apk" -type f
+          echo "APK build complete."
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamBox-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+          if-no-files-found: error
