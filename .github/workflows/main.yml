@@ -28,10 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app (Static SPA)
+      - name: Build web app (Forced Static SPA)
         env:
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
         run: npx vite build
+
+      - name: Debug - Verify index.html exists
+        run: ls -R dist
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -53,3 +56,4 @@ jobs:
           name: StreamBox-Debug
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+          
