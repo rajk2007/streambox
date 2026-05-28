@@ -28,15 +28,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web app
+      # 🚨 CHANGED THIS LINE 🚨
+      # We bypass Lovable's server build and force a standard Vite static build
+      - name: Build web app (Static)
         env:
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
-        run: npm run build
-
-      # --- NEW DETECTIVE STEP ---
-      - name: Find index.html
-        run: find . -name "index.html"
-      # --------------------------
+        run: npx vite build
+      
+      - name: Debug - List files in dist
+        run: ls -R dist
 
       - name: Sync Capacitor
         run: npx cap sync android
