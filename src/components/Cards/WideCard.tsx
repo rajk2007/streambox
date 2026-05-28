@@ -6,7 +6,7 @@ export function WideCard({ item, progress, showMeta = true }: { item: MediaItem;
   return (
     <Link to="/detail/$id" params={{ id: item.id }} className="block w-64 shrink-0">
       <div className="relative rounded-lg overflow-hidden shadow-card">
-        <MediaImage src={item.wideCard} alt={item.title} className="aspect-video w-full" />
+        <MediaImage src={item.wideCard || item.backdrop || item.poster} alt={item.title} className="aspect-video w-full" />
         <RatingBadge rating={item.rating} />
         {typeof progress === "number" && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60">

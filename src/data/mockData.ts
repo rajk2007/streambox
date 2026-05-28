@@ -16,6 +16,10 @@ export interface MediaItem {
   episodes?: number;
   wideCard?: string;
   progress?: number;
+  language?: string;
+  isTrending?: boolean;
+  isTopRated?: boolean;
+  isNew?: boolean;
 }
 
 export const mockData: MediaItem[] = [];
