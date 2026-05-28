@@ -12,6 +12,12 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/app": "^6.0.3",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/haptics": "^6.0.3",
+    "@capacitor/status-bar": "^6.0.3",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -44,6 +50,7 @@
     "@tanstack/react-router": "^1.168.25",
     "@tanstack/react-start": "^1.167.50",
     "@tanstack/router-plugin": "^1.167.28",
+    "axios": "^1.16.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
